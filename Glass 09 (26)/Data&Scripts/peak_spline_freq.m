@@ -5,6 +5,7 @@ smooth=0.026;
 X=freq(minind:maxind)-peakcoords(ch, peaki);
 Y=spe(minind:maxind, ch);
 Y=Y/peakvalues(ch, peaki);
+X=[X; 0; 0; 0]; Y=[Y; 1; 1; 1];
 [xData, yData] = prepareCurveData( X, Y );
 
 % Set up fittype and options.
@@ -14,7 +15,6 @@ opts.SmoothingParam =smooth;
 
 % Fit model to data.
 [fitresult, gof] = fit( xData, yData, ft, opts );
-
 
 if(plot_enable)
     h = plot( fitresult, xData, yData );

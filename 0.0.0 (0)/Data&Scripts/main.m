@@ -2,5 +2,8 @@
 data=Data;
 data=data.parsefiles();
 
-%plot_data(data, 1, 2, 1);
-plot_series(data);
+%plotseries(data);
+ix=[1 1 1];
+iy=[2 2 2];
+plotNums=[3 2 1];
+plotseries(data, ix, iy, plotNums);

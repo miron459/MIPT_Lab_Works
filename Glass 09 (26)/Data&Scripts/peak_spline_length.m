@@ -5,6 +5,7 @@ smooth=0.9999;
 X=a(ch)./freq(minind:maxind)-a(ch)/freq_peak;
 Y=spe(minind:maxind, ch);
 Y=Y/peakvalues(ch, peaki);
+X=[X; 0; 0; 0]; Y=[Y; 1; 1; 1];
 [xData, yData] = prepareCurveData( X, Y );
 
 % Set up fittype and options.

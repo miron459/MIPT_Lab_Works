@@ -25,12 +25,14 @@ if(plot_enable)
     set(h, 'MarkerEdgeColor', 'k');
     plot(X(1), Y(1));
     plot(X(1), Y(1));
+    plot(X(1), Y(1));
 
     %legend
     l=legend('data',...
             ['peak fit = ' num2str(round(peakcoords(ch, peaki))) 'kHz'],...
             ['wavelength = ' num2str(wavelengths(peaki)) 'nm'],...
-            ['\sigma = ' num2str(coefs(3)) 'kHz']);
+            ['2\sigma = ' num2str(coefs(3)) 'kHz'], ...
+            ['FWHM = ' num2str(sqrt(2*log(2))*coefs(3)) 'kHz']);
     l.TextColor='k';
     l.Color = 'w';
     l.Box = 'on';

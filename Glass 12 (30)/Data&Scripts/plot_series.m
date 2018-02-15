@@ -45,7 +45,7 @@ function [fitobj, fitcoeffs, fiterrs]= plot_series(data, ix, iy, nPlots )
     lineWidths={2, 2, 2, 2};
     colors={'k', 'r', 'b', 'g', 'c', 'm', 'y', 'w'};
     markers={'.', '+', 'x', '^', 'v', 'x', 'd', '^', 'v', '>', '<', 'p', 'h', 's'};
-    markerSizes={5, 2, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
+    markerSizes={5, 2, 2, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
     markerEdgeColors={'k', 'r', 'b', 'g', 'c', 'm', 'y', 'w'};
     markerFaceColors={'k', 'r', 'b', 'g', 'c', 'm', 'y', 'w'};
 
