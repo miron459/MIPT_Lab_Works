@@ -79,7 +79,7 @@ classdef DataContainer
             obj.names{iDatum}=name;
             obj.iDatumByName(obj.names{iDatum})=iDatum;
             nCols=size(obj.data{iDatum}, 2);
-            if(~(isa(colheaders,'string') || (isa(colheaders, 'cell') && isa(colheaders{1}, 'char'))))
+            if(isa(colheaders,'double'))
                 colheaders=DataContainer.createdummytitles(nCols);
             end
             obj.colNames{iDatum}=cell(nCols,1);
@@ -98,7 +98,7 @@ classdef DataContainer
                 unit='';
             end
             if nargin <= 3
-                name=DataContainer.createdummytitles(1){1}; %#ok
+                name=DataContainer.createdummytitles(1){1};
             end
             nRows =size(obj.data{iDatum}, 2);
             obj.data{iDatum}=[obj.data{iDatum} column];

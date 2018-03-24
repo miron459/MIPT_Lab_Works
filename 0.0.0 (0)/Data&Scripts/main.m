@@ -7,4 +7,5 @@ ix=[1 1 1];
 iy=[2 2 2];
 plotNums=[3 2 1];
 %plotseries(data, ix, iy, plotNums);
-a=plotseries(data, 'angle', "len", 'data');
+%a=plotseries(data, 'angle', "len", 'data');
+data=data.add_column(data.data{1}(:,1), 1);
