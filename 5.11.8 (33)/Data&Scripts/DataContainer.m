@@ -109,7 +109,7 @@ classdef DataContainer < handle
             end
             nRows =size(obj.data{iDatum}, 2);
             obj.data{iDatum}=[obj.data{iDatum} column];
-            obj.colIndexByColName{iDatum}(name)=nRows+1;
+            obj.colIndexByColName{iDatum}(name_unit{1})=nRows+1;
             obj.colNames{iDatum}{nRows+1}=name_unit{1};
             obj.colUnits{iDatum}{nRows+1}=name_unit{2};
         end

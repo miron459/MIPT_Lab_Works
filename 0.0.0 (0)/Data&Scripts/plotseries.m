@@ -1,69 +1,41 @@
-function [fitObj, fitCoeffs, fitConfInts]= plotseries(dataCont, ix, iy, iData )
-    %% process input parameters
-    if nargin <= 0
-        error('data is a required input')
+function [fitObjs, ix, iy, iData] = ...
+        plotseries(dc, ix, iy, iData, iSubplots, gridSize)
+    %% parse arguments
+    if(~exist('ix','var'));            [ix, iy, iData, iSubplots, gridSize]=parsearguments(dc);
+    elseif(~exist('iy','var'));        [ix, iy, iData, iSubplots, gridSize]=parsearguments(dc, ix);
+    elseif(~exist('iData','var'));     [ix, iy, iData, iSubplots, gridSize]=parsearguments(dc, ix, iy);
+    elseif(~exist('iSubplots','var')); [ix, iy, iData, iSubplots, gridSize]=parsearguments(dc, ix, iy, iData);
+    elseif(~exist('gridSize','var'));  [ix, iy, iData, iSubplots, gridSize]=parsearguments(dc, ix, iy, iData, iSubplots);
+    else;                              [ix, iy, iData, iSubplots, gridSize]=parsearguments(dc, ix, iy, iData, iSubplots, gridSize);
     end
-    [nData, ~]=size(dataCont.data);
-    if(nData==0) 
-        return
-    end
-    if nargin == 4
-        if(isa(iData, 'char') || isa(iData, 'string'))
-            matches=regexp(dataCont.names, iData, 'once');
-            k=1;
-            for i=1:size(matches, 1)
-                if(max(size(matches{i}))>0)
-                    dataNums(k)=i; %#ok
-                    k=k+1;
-                end
-            end
+    
+    %% plot
+    nPlots=length(iData);
+    fitObjs={};
+    figure;
+    s=1; e=1;
+    for i=2:nPlots+1
+        if(i==nPlots+1 || ~isequal(iSubplots{i}, iSubplots{i-1}))
+            fitObjs=cat(1,fitObjs,...
+                plotsubplot1(dc, ix(s:e), iy(s:e), iData(s:e), iSubplots{e}, gridSize));
+            s=i; e=i;
         else
-            dataNums=iData;
-        end
-        nPlots=max(size(dataNums));
-    end
-    if nargin <= 3
-        nPlots=nData;
-        dataNums=1:nPlots;
-        if nargin <= 2
-            iy=zeros(max(dataNums),1)+2;
-            if nargin <= 1
-                ix=zeros(max(dataNums),1)+1;
-            end
+            e=e+1;
         end
     end
-    if nargin >= 2
-        if(isa(ix, 'char') || isa(ix, 'string'))
-            colName=char(ix);
-            ix=zeros(max(dataNums), 1);
-            for i=1:nPlots
-                ix(dataNums(i))=dataCont.colIndexByColName{dataNums(i)}(colName);
-            end
-        end
-        if nargin >=3
-            if(isa(iy, 'char') || isa(iy, 'string'))
-                colName=char(iy);
-                iy=zeros(max(dataNums), 1);
-                for i=1:nPlots
-                    iy(dataNums(i))=dataCont.colIndexByColName{dataNums(i)}(colName);
-                end
-            end
-        end
-    end
+end 
+
+function [fitObjs] = plotsubplot1(dc, ix, iy, iData, iSubplot, gridSize)    
+    nPlots=length(ix);
     
     %% setup fit
     leglines=4;
-    leg=strings(nPlots*leglines, 1);
-    fitObj=cell(nPlots, 1);
     fitType='poly1';
     fitNCoeffs=2;
-    fitCoeffs=zeros(max(dataNums),fitNCoeffs);
-    fitConfInts=zeros(max(dataNums),fitNCoeffs, 2);
-
-    %% make new space
-    figure;
-    hold on;
-    grid on;
+    fitObjs=cell(nPlots, 1);
+    fitCoeffs=zeros(nPlots,fitNCoeffs);
+    fitConfInts=zeros(nPlots,fitNCoeffs, 2);
+    leg=strings(nPlots*leglines, 1);
 
     %% setup styles
     lineStyles={'none', 'none', 'none', 'none'};
@@ -79,12 +51,21 @@ function [fitObj, fitCoeffs, fitConfInts]= plotseries(dataCont, ix, iy, iData )
     format='%+5.3f';
     formaterr='%5.3f';
 
+    %% make new space
+    subplot1=subplot(gridSize(1), gridSize(2), iSubplot);
+    subplot1.XScale='linear';
+    subplot1.YScale='linear';
+    subplot1.GridLineStyle='-';
+    %subplot1....
+    hold on;
+    grid on;
+
     %%
     for iPlot=1:nPlots
-        iDatum=dataNums(iPlot);
+        iDatum=iData(iPlot);
 
-        X=dataCont.data{iDatum}(:,ix(iDatum));
-        Y=dataCont.data{iDatum}(:,iy(iDatum));
+        X=dc.data{iDatum}(:,ix(iPlot));
+        Y=dc.data{iDatum}(:,iy(iPlot));
 
         % sort
         s = [X Y];
@@ -103,21 +84,21 @@ function [fitObj, fitCoeffs, fitConfInts]= plotseries(dataCont, ix, iy, iData )
         set(plot1, 'MarkerFaceColor', getcircled(markerFaceColors, iPlot));
 
         % fit1
-        fitObj{iDatum}=fit(X, Y, fitType);
-        fit1Plot=plot(fitObj{iDatum});
-        fitCoeffs(iDatum, :)=coeffvalues(fitObj{iDatum}); %#ok<*SAGROW>
-        fitConfInts(iDatum, :, :)=confint(fitObj{iDatum})';
+        fitObjs{iPlot}=fit(X, Y, fitType);
+        fit1Plot=plot(fitObjs{iPlot});
+        fitCoeffs(iPlot, :)=coeffvalues(fitObjs{iPlot});
+        fitConfInts(iPlot, :, :) = confint(fitObjs{iPlot})';
         set(fit1Plot, 'LineStyle', getcircled(fitLineStyles, iPlot));
         set(fit1Plot, 'LineWidth', getcircled(fitLineWidths, iPlot));
         set(fit1Plot, 'LineJoin', getcircled(fitLineJoins, iPlot));
         set(fit1Plot, 'Color', getcircled(colors, iPlot));
 
-        leg(leglines*(iPlot-1)+1)=dataCont.names{iDatum};
+        leg(leglines*(iPlot-1)+1)=dc.names{iDatum};
         leg(leglines*(iPlot-1)+2)='linear fit a*x+b:';
-        leg(leglines*(iPlot-1)+3)=['a = ' num2str(fitCoeffs(iDatum, 1), format)...
-            '±' num2str(abs(fitConfInts(iDatum,1,1)-fitConfInts(iDatum,1,2))/2, formaterr)];
-        leg(leglines*(iPlot-1)+4)=['b = ' num2str(fitCoeffs(iDatum, 2), format)...
-            '±' num2str(abs(fitConfInts(iDatum,2,1)-fitConfInts(iDatum,2,2))/2, formaterr)];
+        leg(leglines*(iPlot-1)+3)=['a = ' num2str(fitCoeffs(iPlot, 1), format)...
+            '±' num2str(abs(fitConfInts(iPlot,1,1)-fitConfInts(iPlot,1,2))/2, formaterr)];
+        leg(leglines*(iPlot-1)+4)=['b = ' num2str(fitCoeffs(iPlot, 2), format)...
+            '±' num2str(abs(fitConfInts(iPlot,2,1)-fitConfInts(iPlot,2,2))/2, formaterr)];
         for iter=1:leglines-2
             plotx=plot(X(1), Y(1));
             plotx.Marker='none';
@@ -126,18 +107,86 @@ function [fitObj, fitCoeffs, fitConfInts]= plotseries(dataCont, ix, iy, iData )
     end
 
     %% legend
-    l=legend(leg);
+    l=legend(leg, 'FontSize', 10, 'TextColor', 'black');
     l.TextColor='k';
     l.Color = 'w';
     l.Box = 'on';
     l.EdgeColor = [0.15 0.15 0.15];
     l.LineWidth = 0.5;
-    l.Location ='northwest';
+    l.Location ='best';
 
     %% final
-    iDatum=dataNums(1);
-    title(['Dependence of ' dataCont.colNames{iDatum}{iy(iDatum)} ' on ' dataCont.colNames{iDatum}{ix(iDatum)}]);
-    xlabel([dataCont.colNames{iDatum}{ix(iDatum)} ' [' dataCont.colUnits{iDatum}{ix(iDatum)} ']']);
-    ylabel([dataCont.colNames{iDatum}{iy(iDatum)} ' [' dataCont.colUnits{iDatum}{iy(iDatum)} ']']);
+    iDatum=iData(1);
+    title(['Dependence of ' dc.colNames{iDatum}{iy(1)} ' on ' dc.colNames{iDatum}{ix(1)}]);
+    xlabel([dc.colNames{iDatum}{ix(1)} ' [' dc.colUnits{iDatum}{ix(1)} ']']);
+    ylabel([dc.colNames{iDatum}{iy(1)} ' [' dc.colUnits{iDatum}{iy(1)} ']']);
     hold off;
-end 
+end
+
+%% support functions
+function [ixRes, iyRes, iDataRes, iSubplotsRes, gridSizeRes] = parsearguments(dc, ix, iy, iData, iSubplots, gridSize)
+    % default values
+    if(exist('ix','var')); nClauses=length(ix);
+    else; nClauses=1; end
+    if(~exist('ix','var'));        ix=cell(1, nClauses); ix(:)={1}; end
+    if(~exist('iy','var'));        iy=cell(1, nClauses); iy(:)={2}; end
+    if(~exist('iData','var'));     iData=cell(1, nClauses); iData(:)={'.'}; end
+    if(~exist('iSubplots','var')); iSubplots=cell(1, nClauses); iSubplots(:)={1}; end
+    
+    % checks
+    if(isa(ix, 'double')); ix=num2cell(ix); end
+    if(isa(iy, 'double')); iy=num2cell(iy); end
+    if(isa(iData, 'double')); iData=num2cell(iData); end
+    if(isa(iSubplots, 'double')); iSubplots=num2cell(iSubplots); end
+    
+    % initiate result variables
+    ixRes=[]; iyRes=[]; iDataRes=[]; iSubplotsRes={};
+    
+    % parsing
+    for i=1:nClauses
+        iDataClause=iData{i};
+        if(~isa(iDataClause, 'double'))
+            iDataClause=getmatchnums(dc.names, iDataClause);
+        end
+        for k=1:length(iDataClause)
+            iDatum=iDataClause(k);
+            ixClause=ix{i};
+            iyClause=iy{i};
+            if(~isa(ixClause, 'double'))
+                ixClause=getmatchnums(dc.colNames{iDatum}, ixClause);
+            end
+            if(~isa(iyClause, 'double'))
+                iyClause=getmatchnums(dc.colNames{iDatum}, iyClause);
+            end
+            [X, Y]=meshgrid(ixClause, iyClause);
+            ixRes=cat(1, ixRes, X(:));
+            iyRes=cat(1, iyRes, Y(:));
+            iDataRes=cat(1, iDataRes, zeros(length(X(:)),1)+iDatum);
+            iSubplotsRes=cat(1, iSubplotsRes, cell(length(X(:)),1));
+            iSubplotsRes(end-length(X(:))+1:end)=iSubplots(i);
+        end
+    end
+    
+    if(~exist('gridSize','var'));  gridSizeRes=[max(iSubplotsRes), 1];
+    else;                          gridSizeRes=gridSize; end
+end
+
+function [res] = getmatchnums(arr, expression)
+    matches=regexp(arr, expression, 'once');
+    k=1;
+    for i=1:length(matches)
+        if(~isempty(matches{i}))
+            res(k)=i; %#ok
+            k=k+1;
+        end
+    end
+end
+
+function [res] = getcircled(cellarr, k)
+    s = length(cellarr);
+    ind = mod(k, s);
+    if ind==0
+        ind=s;
+    end
+    res=cellarr{ind};
+end
