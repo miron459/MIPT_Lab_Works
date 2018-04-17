@@ -105,14 +105,13 @@ classdef DataContainer < handle
         
         function iColumn=addColumn(dc, column, iDatum, colheader)
             if(~exist('colheader','var'))
-                name_unit=DataContainer.createdummytitles(1);
-            else
-                name_unit=DataContainer.parsecolheader(colheader);
+                colheader=DataContainer.createdummycolheaders(1);
             end
+            name_unit=DataContainer.parsecolheader(colheader);
             iDatum=dc.getiDatum(iDatum);
             dc.data{iDatum}=[dc.data{iDatum} column];
             iColumn=size(dc.data{iDatum}, 2);
-            dc.iColumnByName{iDatum}(name)=iColumn;
+            dc.iColumnByName{iDatum}(name_unit{1})=iColumn;
             dc.colNames{iDatum}(iColumn)=name_unit(1);
             dc.colUnits{iDatum}(iColumn)=name_unit(2);
             dc.coliErrors{iDatum}(iColumn)=0;
@@ -185,17 +184,17 @@ classdef DataContainer < handle
             if(length(out)==1)
                 name_unit=out{1};
             elseif(~isempty(title))
-                name_unit{1}=title;
-                name_unit{2}='';
+                name_unit(1)=title;
+                name_unit(2)='';
             else
-                name_unit{1}=['dummy' num2str(randi(100))];
-                name_unit{2}='';
+                name_unit(1)=['dummy' num2str(randi(100))];
+                name_unit(2)='';
             end
             name_unit=strtrim(name_unit);
         end
         
         function titles=createdummycolheaders(n)
-            titles=cell(n, 1);
+            titles=strings(n, 1);
             for i=1:n
                 titles{i}=['dummy' num2str(i)];
             end
