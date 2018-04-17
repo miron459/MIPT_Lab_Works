@@ -31,6 +31,8 @@ function [fitObjs] = plotsubplot1(dc, ix, iy, iData, iSubplot, gridSize)
     %% setup fit
     leglines=4;
     fitType='poly1';
+    fitOpts = fitoptions( 'Method', 'LinearLeastSquares' );
+    
     fitNCoeffs=2;
     fitObjs=cell(nPlots, 1);
     fitCoeffs=zeros(nPlots,fitNCoeffs);
@@ -63,18 +65,27 @@ function [fitObjs] = plotsubplot1(dc, ix, iy, iData, iSubplot, gridSize)
     %%
     for iPlot=1:nPlots
         iDatum=iData(iPlot);
-
+        iyErr=dc.coliErrors{iDatum}(iy(iPlot));
         X=dc.data{iDatum}(:,ix(iPlot));
         Y=dc.data{iDatum}(:,iy(iPlot));
-
+        if(iyErr>0) 
+            YErr=dc.data{iDatum}(:,iyErr);
+            fitOpts.Weights = 1./YErr;
+        else; YErr=zeros(length(Y),1);
+        end
+        [X, Y, YErr]=prepareCurveData(X, Y, YErr);
+        
         % sort
-        s = [X Y];
+        s = [X Y YErr];
         s = sortrows(s,1);
         X = s(:, 1);
         Y = s(:, 2);
+        YErr=s(:,3);
 
         % plot1
-        plot1 = plot(X, Y);
+        if(iyErr>0); plot1=errorbar(X, Y, YErr);
+        else; plot1 = plot(X, Y); end
+        
         set(plot1, 'LineStyle', getcircled(lineStyles, iPlot));
         set(plot1, 'LineWidth', getcircled(lineWidths, iPlot));
         set(plot1, 'Color', getcircled(colors, iPlot));
@@ -84,7 +95,7 @@ function [fitObjs] = plotsubplot1(dc, ix, iy, iData, iSubplot, gridSize)
         set(plot1, 'MarkerFaceColor', getcircled(markerFaceColors, iPlot));
 
         % fit1
-        fitObjs{iPlot}=fit(X, Y, fitType);
+        fitObjs{iPlot}=fit(X, Y, fitType, fitOpts);
         fit1Plot=plot(fitObjs{iPlot});
         fitCoeffs(iPlot, :)=coeffvalues(fitObjs{iPlot});
         fitConfInts(iPlot, :, :) = confint(fitObjs{iPlot})';
@@ -93,12 +104,14 @@ function [fitObjs] = plotsubplot1(dc, ix, iy, iData, iSubplot, gridSize)
         set(fit1Plot, 'LineJoin', getcircled(fitLineJoins, iPlot));
         set(fit1Plot, 'Color', getcircled(colors, iPlot));
 
-        leg(leglines*(iPlot-1)+1)=dc.names{iDatum};
+        leg(leglines*(iPlot-1)+1)=dc.names{iDatum}; % dc.colNames{iDatum}{iy(iPlot)};
         leg(leglines*(iPlot-1)+2)='linear fit a*x+b:';
         leg(leglines*(iPlot-1)+3)=['a = ' num2str(fitCoeffs(iPlot, 1), format)...
-            '±' num2str(abs(fitConfInts(iPlot,1,1)-fitConfInts(iPlot,1,2))/2, formaterr)];
+            '±' num2str(abs(fitConfInts(iPlot,1,1)-fitConfInts(iPlot,1,2))/2, formaterr)...
+            ' ' dc.colUnits{iDatum}{iy(iPlot)} '/' dc.colUnits{iDatum}{ix(iPlot)}];
         leg(leglines*(iPlot-1)+4)=['b = ' num2str(fitCoeffs(iPlot, 2), format)...
-            '±' num2str(abs(fitConfInts(iPlot,2,1)-fitConfInts(iPlot,2,2))/2, formaterr)];
+            '±' num2str(abs(fitConfInts(iPlot,2,1)-fitConfInts(iPlot,2,2))/2, formaterr)...
+            ' ' dc.colUnits{iDatum}{iy(iPlot)}];
         for iter=1:leglines-2
             plotx=plot(X(1), Y(1));
             plotx.Marker='none';
@@ -145,19 +158,13 @@ function [ixRes, iyRes, iDataRes, iSubplotsRes, gridSizeRes] = parsearguments(dc
     % parsing
     for i=1:nClauses
         iDataClause=iData{i};
-        if(~isa(iDataClause, 'double'))
-            iDataClause=getmatchnums(dc.names, iDataClause);
-        end
+        iDataClause=dc.getiData(iDataClause);
         for k=1:length(iDataClause)
             iDatum=iDataClause(k);
             ixClause=ix{i};
             iyClause=iy{i};
-            if(~isa(ixClause, 'double'))
-                ixClause=getmatchnums(dc.colNames{iDatum}, ixClause);
-            end
-            if(~isa(iyClause, 'double'))
-                iyClause=getmatchnums(dc.colNames{iDatum}, iyClause);
-            end
+            ixClause=dc.getiColumns(iDatum, ixClause);
+            iyClause=dc.getiColumns(iDatum, iyClause);
             [X, Y]=meshgrid(ixClause, iyClause);
             ixRes=cat(1, ixRes, X(:));
             iyRes=cat(1, iyRes, Y(:));
@@ -167,19 +174,8 @@ function [ixRes, iyRes, iDataRes, iSubplotsRes, gridSizeRes] = parsearguments(dc
         end
     end
     
-    if(~exist('gridSize','var'));  gridSizeRes=[max(iSubplotsRes), 1];
+    if(~exist('gridSize','var'));  gridSizeRes=[max(cell2mat(iSubplotsRes)), 1];
     else;                          gridSizeRes=gridSize; end
-end
-
-function [res] = getmatchnums(arr, expression)
-    matches=regexp(arr, expression, 'once');
-    k=1;
-    for i=1:length(matches)
-        if(~isempty(matches{i}))
-            res(k)=i; %#ok
-            k=k+1;
-        end
-    end
 end
 
 function [res] = getcircled(cellarr, k)
