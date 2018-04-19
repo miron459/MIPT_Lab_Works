@@ -84,7 +84,8 @@ classdef DataContainer < handle
                 iDatum=size(dc.data, 2);
                 iDatum=iDatum+1;
             end
-            dc.names{iDatum}=name;
+            if(~isa(dc.names,'string')); dc.names=string(); end
+            dc.names(iDatum)=string(name);
             dc.iDatumByName(dc.names{iDatum})=iDatum;
             dc.data{iDatum}=datum;
             nCols=size(dc.data{iDatum}, 2);
@@ -97,8 +98,8 @@ classdef DataContainer < handle
             dc.iColumnByName{iDatum}=containers.Map;
             for i=nCols:-1:1
                 name_unit=DataContainer.parsecolheader(colheaders{i});
-                dc.colNames{iDatum}{i}=name_unit{1};
-                dc.colUnits{iDatum}{i}=name_unit{2};
+                dc.colNames{iDatum}(i)=name_unit(1);
+                dc.colUnits{iDatum}(i)=name_unit(2);
                 dc.iColumnByName{iDatum}(name_unit{1})=i;
             end
         end
@@ -182,9 +183,9 @@ classdef DataContainer < handle
             out = regexp(title,'(^.*?)(?:\:|\,)(.*$)','tokens');
             name_unit=strings(1,2);
             if(length(out)==1)
-                name_unit=out{1};
+                name_unit=strrep(string(out{1}),"_"," ");
             elseif(~isempty(title))
-                name_unit(1)=title;
+                name_unit(1)=strrep(title,"_"," ");
                 name_unit(2)='';
             else
                 name_unit(1)=['dummy' num2str(randi(100))];

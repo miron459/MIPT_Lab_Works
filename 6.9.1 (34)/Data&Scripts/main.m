@@ -1,0 +1,9 @@
+%open files
+data=DataContainer;
+data.parsefiles();
+
+%plotseries(data);
+plotseries(data, ["len", "angle", "angle"],...
+                 {'angle', 'len', 'len'},...
+                 {'3', '2', '^data$'},...
+                 [1,2,2], [1,2]);

@@ -42,7 +42,7 @@ function [fitObjs] = plotsubplot1(dc, ix, iy, iDataX, iDataY, iSubplot, gridSize
     fitObjs=cell(nPlots, 1);
     fitCoeffs=zeros(nPlots,fitNCoeffs);
     fitConfInts=zeros(nPlots,fitNCoeffs, 2);
-    leg=strings(nPlots*leglines, 1);
+    leg=cell(nPlots*leglines, 1);
 
     %% setup styles
     lineStyles={'none', 'none', 'none', 'none'};
@@ -110,12 +110,12 @@ function [fitObjs] = plotsubplot1(dc, ix, iy, iDataX, iDataY, iSubplot, gridSize
         set(fit1Plot, 'LineJoin', getcircled(fitLineJoins, iPlot));
         set(fit1Plot, 'Color', getcircled(colors, iPlot));
 
-        leg(leglines*(iPlot-1)+1)=dc.names{iDatumY}; % dc.colNames{iDatumY}{iy(iPlot)};
-        leg(leglines*(iPlot-1)+2)='linear fit a*x+b:';
-        leg(leglines*(iPlot-1)+3)=['a = ' num2str(fitCoeffs(iPlot, 1), format)...
+        leg{leglines*(iPlot-1)+1}=dc.names{iDatumY}; % dc.colNames{iDatumY}{iy(iPlot)};
+        leg{leglines*(iPlot-1)+2}='linear fit a*x+b:';
+        leg{leglines*(iPlot-1)+3}=['a = ' num2str(fitCoeffs(iPlot, 1), format)...
             '±' num2str(abs(fitConfInts(iPlot,1,1)-fitConfInts(iPlot,1,2))/2, formaterr)...
             ' ' dc.colUnits{iDatumY}{iy(iPlot)} '/' dc.colUnits{iDatumX}{ix(iPlot)}];
-        leg(leglines*(iPlot-1)+4)=['b = ' num2str(fitCoeffs(iPlot, 2), format)...
+        leg{leglines*(iPlot-1)+4}=['b = ' num2str(fitCoeffs(iPlot, 2), format)...
             '±' num2str(abs(fitConfInts(iPlot,2,1)-fitConfInts(iPlot,2,2))/2, formaterr)...
             ' ' dc.colUnits{iDatumY}{iy(iPlot)}];
         for iter=1:leglines-2
