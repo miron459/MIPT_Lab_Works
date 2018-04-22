@@ -10,44 +10,48 @@ classdef DataContainer < handle
     %                                              %
     % ----colUnits{1}-----....-----colUnits{N}---- %
     % unit{1}-...-unit{n1}....unit{1}-...-unit{nN} %
+    %                                              %
+    % ---coliErrors{1}----....---coliErrors{N}---- % determines index of error column
+    % iErr(1)-...-iErr(n1)....iErr(1)-...-iErr(nN) % for given column
     
     properties
         data
         names
         colNames
         colUnits
+        coliErrors
         iDatumByName
-        colIndexByColName
+        iColumnByName
     end
     
     methods
-        function obj=DataContainer()
-            obj.iDatumByName=containers.Map;
+        function dc=DataContainer()
+            dc.iDatumByName=containers.Map;
         end
         %% parsing
-        function parsefiles(obj, fileExt, skipRows)
-            if nargin <= 2
-                skipRows=0;
-            end
-            if nargin <= 1
+        function parsefiles(dc, fileExt, skipRows)
+            if(~exist('fileExt','var'))
                 fileExt='*.txt';
+            end
+            if(~exist('skipRows','var'))
+                skipRows=0;
             end
             files=dir(fileExt);
             nFiles=length(files);
             
             % reverse indexing order for implicit memory allocation
-            initSize=size(obj.data, 2);
+            initSize=size(dc.data, 2);
             for i=nFiles:-1:1
-                obj.parsefile(files(i).name, skipRows, initSize+i);
+                dc.parsefile(files(i).name, skipRows, initSize+i);
             end
         end
         
-        function parsefile(obj, file, skipRows, iDatum)
-            if nargin <= 2
+        function parsefile(dc, file, skipRows, iDatum)
+            if(~exist('skipRows','var'))
                 skipRows=0;
             end
-            if nargin <= 3
-                iDatum=size(obj.data, 2);
+            if(~exist('iDatum','var'))
+                iDatum=size(dc.data, 2);
                 iDatum=iDatum+1;
             end
             
@@ -71,70 +75,142 @@ classdef DataContainer < handle
             name=file(1:endPos);
             
             % finishing
-            obj.add_datum(datum, name, colheaders, iDatum);
+            dc.addDatum(datum, name, colheaders, iDatum);
         end
         
         %% modifying
-        function add_datum(obj, datum, name, colheaders, iDatum)
-            if nargin <= 4
-                iDatum=size(obj.data, 2);
+        function iDatum=addDatum(dc, datum, name, colheaders, iDatum)
+            if(~exist('iDatum','var'))
+                iDatum=size(dc.data, 2);
                 iDatum=iDatum+1;
             end
-            obj.names{iDatum}=name;
-            obj.iDatumByName(obj.names{iDatum})=iDatum;
-            obj.data{iDatum}=datum;
-            nCols=size(obj.data{iDatum}, 2);
+            if(~isa(dc.names,'string')); dc.names=string(); end
+            dc.names(iDatum)=string(name);
+            dc.iDatumByName(dc.names{iDatum})=iDatum;
+            dc.data{iDatum}=datum;
+            nCols=size(dc.data{iDatum}, 2);
             if(~(isa(colheaders,'string') || (isa(colheaders, 'cell') && isa(colheaders{1}, 'char'))))
                 colheaders=DataContainer.createdummycolheaders(nCols);
             end
-            obj.colNames{iDatum}=cell(nCols,1);
-            obj.colIndexByColName{iDatum}=containers.Map;
-            obj.colUnits{iDatum}=cell(nCols,1);
+            dc.colNames{iDatum}=strings(1,nCols);
+            dc.colUnits{iDatum}=strings(1,nCols);
+            dc.coliErrors{iDatum}=zeros(1, nCols);
+            dc.iColumnByName{iDatum}=containers.Map;
             for i=nCols:-1:1
                 name_unit=DataContainer.parsecolheader(colheaders{i});
-                obj.colNames{iDatum}{i}=name_unit{1};
-                obj.colUnits{iDatum}{i}=name_unit{2};
-                obj.colIndexByColName{iDatum}(name_unit{1})=i;
+                dc.colNames{iDatum}(i)=name_unit(1);
+                dc.colUnits{iDatum}(i)=name_unit(2);
+                dc.iColumnByName{iDatum}(name_unit{1})=i;
             end
         end
         
-        function add_column(obj, column, iDatum, colheader)
-            if nargin <= 3
-                name_unit=DataContainer.createdummytitles(1);
-            else
-                name_unit=DataContainer.parsecolheader(colheader);
+        function iColumn=addColumn(dc, column, iDatum, colheader)
+            if(~exist('colheader','var'))
+                colheader=DataContainer.createdummycolheaders(1);
             end
-            if(~isa(iDatum, 'double'))
-                iDatum=obj.iDatumByName(iDatum);
-            end
-            nRows =size(obj.data{iDatum}, 2);
-            obj.data{iDatum}=[obj.data{iDatum} column];
-            obj.colIndexByColName{iDatum}(name)=nRows+1;
-            obj.colNames{iDatum}{nRows+1}=name_unit{1};
-            obj.colUnits{iDatum}{nRows+1}=name_unit{2};
+            name_unit=DataContainer.parsecolheader(colheader);
+            iDatum=dc.getiDatum(iDatum);
+            dc.data{iDatum}=[dc.data{iDatum} column];
+            iColumn=size(dc.data{iDatum}, 2);
+            dc.iColumnByName{iDatum}(name_unit{1})=iColumn;
+            dc.colNames{iDatum}(iColumn)=name_unit(1);
+            dc.colUnits{iDatum}(iColumn)=name_unit(2);
+            dc.coliErrors{iDatum}(iColumn)=0;
         end
+        
+        function iErrColumn=addErrorColumn(dc, errorcolumn, iDatum, iColumn, colheader)
+            iDatum=dc.getiDatum(iDatum);
+            iColumn=dc.getiColumn(iDatum, iColumn);
+            
+            if(~exist('colheader','var'))
+                colheader=dc.colNames{iDatum}(iColumn)+" Error,"+dc.colUnits{iDatum}(iColumn);
+            end
+            iErrColumn=dc.addColumn(errorcolumn, iDatum, colheader);
+            dc.coliErrors{iDatum}(iColumn)=iErrColumn;
+        end
+        
+        function markErrorColumn(dc, iDatum, iColumn, iErrColumn)
+            iDatum=dc.getiDatum(iDatum);
+            iColumn=dc.getiColumn(iDatum, iColumn);
+            iErrColumn=dc.getiColumn(iDatum, iErrColumn);
+            dc.coliErrors{iDatum}(iColumn)=iErrColumn;
+        end
+        
+        %% accessing
+        function iData=getiData(dc, iData)
+            % retuns datum indexes by regex pattern or index iDatum
+            if(~isa(iData, 'double'))
+                iData=DataContainer.getmatchnums(dc.names, iData);
+            end
+        end
+        
+        function iDatum=getiDatum(dc, iDatum)
+            iDatum=dc.getiData(iDatum);
+            assert(length(iDatum)<=1, 'Arguments define more than one iDatum');
+            assert(length(iDatum)==1, 'Arguments do not define iDatum');
+        end
+        
+        function [iColsRes, iDataRes]=getiColumns(dc, iData, iColumns)
+            % retuns column-datum pair indexes by regex pattern or index
+            iDataShort=dc.getiData(iData);
+            iColsRes=[];
+            iDataRes=[];
+            for i=1:length(iDataShort)
+                if(~isa(iColumns, 'double'))
+                    res=DataContainer.getmatchnums(dc.colNames{iDataShort(i)}, iColumns);
+                else; res=iColumns; 
+                end
+                iColsRes=[iColsRes res];                                    %#ok
+                iDataRes=[iDataRes (zeros(1,length(res))+iDataShort(i))];   %#ok
+            end
+        end
+        
+        function [iColumn, iDatum]=getiColumn(dc, iDatum, iColumn)
+            iColumn=dc.getiColumns(iDatum, iColumn);
+            assert(length(iColumn)<=1, 'Arguments define more than one reference column');
+            assert(length(iColumn)==1, 'Arguments do not reference column');
+        end
+        
+        function col=gc(dc, iDatum, iColumn)
+            [iColumn, iDatum]=getiColumn(dc, iDatum, iColumn);
+            col=dc.data{iDatum}(:,iColumn);
+        end
+            
     end
-    methods (Access = public, Static)
-        %% accessory
+    methods (Access = private, Static)
+        %% accessories
         function name_unit=parsecolheader(title)
             out = regexp(title,'(^.*?)(?:\:|\,)(.*$)','tokens');
             name_unit=strings(1,2);
             if(length(out)==1)
-                name_unit=out{1};
+                name_unit=string(out{1});
             elseif(~isempty(title))
-                name_unit{1}=title;
-                name_unit{2}='';
+                name_unit(1)=title;
+                name_unit(2)='';
             else
-                name_unit{1}=['dummy' num2str(randi(100))];
-                name_unit{2}='';
+                name_unit(1)=['dummy' num2str(randi(100))];
+                name_unit(2)='';
             end
             name_unit=strtrim(name_unit);
         end
         
         function titles=createdummycolheaders(n)
-            titles=cell(n, 1);
+            titles=strings(n, 1);
             for i=1:n
                 titles{i}=['dummy' num2str(i)];
+            end
+        end
+        
+        function res = getmatchnums(arr, expression)
+            %returns array of all indexes where regexp succeed
+            res=[];
+            matches=regexp(arr, expression, 'once');
+            k=1;
+            for i=1:length(matches)
+                if(~isempty(matches{i}))
+                    res(k)=i; %#ok
+                    k=k+1;
+                end
             end
         end
     end

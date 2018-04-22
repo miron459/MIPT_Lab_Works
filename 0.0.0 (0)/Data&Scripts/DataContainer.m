@@ -120,7 +120,7 @@ classdef DataContainer < handle
         
         function iErrColumn=addErrorColumn(dc, errorcolumn, iDatum, iColumn, colheader)
             iDatum=dc.getiDatum(iDatum);
-            iColumn=dc.getiColumn(iColumn);
+            iColumn=dc.getiColumn(iDatum, iColumn);
             
             if(~exist('colheader','var'))
                 colheader=dc.colNames{iDatum}(iColumn)+","+dc.colUnits{iDatum}(iColumn);
@@ -171,7 +171,8 @@ classdef DataContainer < handle
             assert(length(iColumn)==1, 'Arguments do not reference column');
         end
         
-        function col=getcol(dc, iDatum, iColumn)
+        function col=gc(dc, iDatum, iColumn)
+            % get column
             [iColumn, iDatum]=getiColumn(dc, iDatum, iColumn);
             col=dc.data{iDatum}(:,iColumn);
         end
@@ -183,9 +184,9 @@ classdef DataContainer < handle
             out = regexp(title,'(^.*?)(?:\:|\,)(.*$)','tokens');
             name_unit=strings(1,2);
             if(length(out)==1)
-                name_unit=strrep(string(out{1}),"_"," ");
+                name_unit=string(out{1});
             elseif(~isempty(title))
-                name_unit(1)=strrep(title,"_"," ");
+                name_unit(1)=title;
                 name_unit(2)='';
             else
                 name_unit(1)=['dummy' num2str(randi(100))];

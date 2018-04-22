@@ -1,5 +1,7 @@
 function [fitObjs, ix, iy, iDataX, iDataY] = ...
         plotseries(varargin)
+    %Arguments order: dataContainer, ix, iy, iData, iSubplots
+    
     %% parse arguments
     [dc, ix, iy, iDataX, iDataY, iSubplots, gridSize]=parsearguments(varargin);
     
@@ -36,7 +38,9 @@ function [fitObjs] = plotsubplot1(dc, ix, iy, iDataX, iDataY, iSubplot, gridSize
     %% setup fit
     leglines=4;
     fitType='poly1';
-    fitOpts = fitoptions( 'Method', 'LinearLeastSquares' );
+    fitOpts = fitoptions( 'Method', 'LinearLeastSquares',...
+                          'Normalize', 'off',...
+                          'Exclude', []);
     
     fitNCoeffs=2;
     fitObjs=cell(nPlots, 1);
@@ -110,13 +114,17 @@ function [fitObjs] = plotsubplot1(dc, ix, iy, iDataX, iDataY, iSubplot, gridSize
         set(fit1Plot, 'LineJoin', getcircled(fitLineJoins, iPlot));
         set(fit1Plot, 'Color', getcircled(colors, iPlot));
 
-        leg{leglines*(iPlot-1)+1}=dc.names{iDatumY}; % dc.colNames{iDatumY}{iy(iPlot)};
+        leg{leglines*(iPlot-1)+1}=[dc.names{iDatumY} ' ' dc.colNames{iDatumY}{iy(iPlot)}];
         leg{leglines*(iPlot-1)+2}='linear fit a*x+b:';
-        leg{leglines*(iPlot-1)+3}=['a = ' num2str(fitCoeffs(iPlot, 1), format)...
-            '±' num2str(abs(fitConfInts(iPlot,1,1)-fitConfInts(iPlot,1,2))/2, formaterr)...
+        a=fitCoeffs(iPlot, 1); b=fitCoeffs(iPlot, 2);
+        aErr=abs(fitConfInts(iPlot,1,1)-fitConfInts(iPlot,1,2))/2;
+        bErr=abs(fitConfInts(iPlot,2,1)-fitConfInts(iPlot,2,2))/2;
+        
+        leg{leglines*(iPlot-1)+3}=['a = ' num2str(a,    format)...
+                                   '±'    num2str(aErr, formaterr)...
             ' ' dc.colUnits{iDatumY}{iy(iPlot)} '/' dc.colUnits{iDatumX}{ix(iPlot)}];
-        leg{leglines*(iPlot-1)+4}=['b = ' num2str(fitCoeffs(iPlot, 2), format)...
-            '±' num2str(abs(fitConfInts(iPlot,2,1)-fitConfInts(iPlot,2,2))/2, formaterr)...
+        leg{leglines*(iPlot-1)+4}=['b = ' num2str(b,    format)...
+                                   '±'    num2str(bErr, formaterr)...
             ' ' dc.colUnits{iDatumY}{iy(iPlot)}];
         for iter=1:leglines-2
             plotx=plot(X(1), Y(1));
@@ -169,9 +177,9 @@ function [dc, ix, iy, iDataX, iDataY, iSubplots, gridSize] = parsearguments(vara
     
     % constructing and parsing
     ip.addRequired('dc', validDC);
-    ip.addOptional('iData', defaultiData, validClauses);
     ip.addOptional('ix', defaultix, validClauses);
     ip.addOptional('iy', defaultiy, validClauses);
+    ip.addOptional('iData', defaultiData, validClauses);
     ip.addOptional('iSubplots', defaultiSubplots, validiSubplots);
     ip.addParameter('gridSize', dummyGridSize, validGridSize);
     ip.addParameter('mixWithinDatum', true, @(x) isa(x,'logical'));
