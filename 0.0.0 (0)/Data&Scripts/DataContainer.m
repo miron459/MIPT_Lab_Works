@@ -67,7 +67,7 @@ classdef DataContainer < handle
                 end
             end
             if(skipRows>0); datum=datum(skipRows+1:end, :); end
-            if(isa(colheaders, 'double')); colheaders = DataContainer.createdummycolheaders(size(datum, 2)); end
+            if(isa(colheaders, 'double')); colheaders = DataContainer.generateDummyColheaders(size(datum, 2)); end
             
             % generating data name
             dotsPos=regexp(file,'\.');
@@ -90,25 +90,29 @@ classdef DataContainer < handle
             dc.data{iDatum}=datum;
             nCols=size(dc.data{iDatum}, 2);
             if(~(isa(colheaders,'string') || (isa(colheaders, 'cell') && isa(colheaders{1}, 'char'))))
-                colheaders=DataContainer.createdummycolheaders(nCols);
+                colheaders=DataContainer.generateDummyColheaders(nCols);
             end
             dc.colNames{iDatum}=strings(1,nCols);
             dc.colUnits{iDatum}=strings(1,nCols);
             dc.coliErrors{iDatum}=zeros(1, nCols);
             dc.iColumnByName{iDatum}=containers.Map;
             for i=nCols:-1:1
-                name_unit=DataContainer.parsecolheader(colheaders{i});
+                name_unit=DataContainer.parseColheader(colheaders{i});
                 dc.colNames{iDatum}(i)=name_unit(1);
                 dc.colUnits{iDatum}(i)=name_unit(2);
                 dc.iColumnByName{iDatum}(name_unit{1})=i;
             end
         end
         
-        function iColumn=addColumn(dc, column, iDatum, colheader)
+        function [iColumn, iErrColumn]=...
+                addColumn(dc, column, iDatum, colheader, errorcolumn, errorcolheader)
             if(~exist('colheader','var'))
-                colheader=DataContainer.createdummycolheaders(1);
+                colheader=DataContainer.generateDummyColheaders(1);
             end
-            name_unit=DataContainer.parsecolheader(colheader);
+            if(~exist('errorcolheader','var'))
+                errorcolheader=DataContainer.generateErrColheader(colheader);
+            end
+            name_unit=DataContainer.parseColheader(colheader);
             iDatum=dc.getiDatum(iDatum);
             dc.data{iDatum}=[dc.data{iDatum} column];
             iColumn=size(dc.data{iDatum}, 2);
@@ -116,6 +120,9 @@ classdef DataContainer < handle
             dc.colNames{iDatum}(iColumn)=name_unit(1);
             dc.colUnits{iDatum}(iColumn)=name_unit(2);
             dc.coliErrors{iDatum}(iColumn)=0;
+            if(exist('errorcolumn','var'))
+                iErrColumn=dc.addErrorColumn(errorcolumn, iDatum, iColumn, errorcolheader);
+            end
         end
         
         function iErrColumn=addErrorColumn(dc, errorcolumn, iDatum, iColumn, colheader)
@@ -123,10 +130,15 @@ classdef DataContainer < handle
             iColumn=dc.getiColumn(iDatum, iColumn);
             
             if(~exist('colheader','var'))
-                colheader=dc.colNames{iDatum}(iColumn)+","+dc.colUnits{iDatum}(iColumn);
+                colheader=DataContainer.generateErrColheader(...
+                    dc.colNames{iDatum}(iColumn)+","+dc.colUnits{iDatum}(iColumn));
             end
+            if(length(errorcolumn)==1)
+                 errorcolumn=zeros(size(dc.data{iDatum},1))+errorcolumn;
+            end
+            
             iErrColumn=dc.addColumn(errorcolumn, iDatum, colheader);
-            dc.coliErrors{iDatum}(iColumn)=iErrColumn;
+            dc.markErrorColumn(iDatum, iColumn, iErrColumn);
         end
         
         function markErrorColumn(dc, iDatum, iColumn, iErrColumn)
@@ -180,13 +192,13 @@ classdef DataContainer < handle
     end
     methods (Access = private, Static)
         %% accessories
-        function name_unit=parsecolheader(title)
-            out = regexp(title,'(^.*?)(?:\:|\,)(.*$)','tokens');
+        function name_unit=parseColheader(colheader)
+            out = regexp(colheader,'(^.*?)(?:\:|\,)(.*$)','tokens');
             name_unit=strings(1,2);
             if(length(out)==1)
                 name_unit=string(out{1});
-            elseif(~isempty(title))
-                name_unit(1)=title;
+            elseif(~isempty(colheader))
+                name_unit(1)=colheader;
                 name_unit(2)='';
             else
                 name_unit(1)=['dummy' num2str(randi(100))];
@@ -195,7 +207,12 @@ classdef DataContainer < handle
             name_unit=strtrim(name_unit);
         end
         
-        function titles=createdummycolheaders(n)
+        function errcolheader=generateErrColheader(colheader)
+            name_unit=DataContainer.parseColheader(colheader);
+            errcolheader=name_unit(1)+" error," + name_unit(2);
+        end
+        
+        function titles=generateDummyColheaders(n)
             titles=strings(n, 1);
             for i=1:n
                 titles{i}=['dummy' num2str(i)];
