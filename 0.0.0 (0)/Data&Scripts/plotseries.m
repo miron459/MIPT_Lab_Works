@@ -134,6 +134,7 @@ function [fitObjs] = plotsubplot1(dc, ix, iy, ixData, iyData, iSubplot, gridSize
     hold off;
 end
 
+%% support functions
 function leglines=generateLegendLines(dc, ix, iy, ixDatum, iyDatum, fitObj)
     format='%5.3f';
     formaterr='%5.3f';
@@ -160,7 +161,6 @@ function leglines=generateLegendLines(dc, ix, iy, ixDatum, iyDatum, fitObj)
     leglines=cellstr([plotTitle; fitTitle; fitToStr]);
 end
 
-%% support functions
 function [dc, ix, iy, ixData, iyData, iSubplots, gridSize] = parsearguments(varargin)
     ip=inputParser;
     ip.PartialMatching=false;
