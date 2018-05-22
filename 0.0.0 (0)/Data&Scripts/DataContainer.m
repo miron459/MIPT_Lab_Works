@@ -134,7 +134,7 @@ classdef DataContainer < handle
                     dc.colNames{iDatum}(iColumn)+","+dc.colUnits{iDatum}(iColumn));
             end
             if(length(errorcolumn)==1)
-                 errorcolumn=zeros(size(dc.data{iDatum},1))+errorcolumn;
+                 errorcolumn=zeros(size(dc.data{iDatum},1),1)+errorcolumn;
             end
             
             iErrColumn=dc.addColumn(errorcolumn, iDatum, colheader);

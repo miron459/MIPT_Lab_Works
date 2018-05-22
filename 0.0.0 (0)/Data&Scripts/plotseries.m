@@ -137,14 +137,13 @@ end
 %% support functions
 function leglines=generateLegendLines(dc, ix, iy, ixDatum, iyDatum, fitObj)
     format='%5.3f';
-    formaterr='%5.3f';
     plotTitle=dc.names(iyDatum) + " " + dc.colNames{iyDatum}(iy);
     fitTitle=['fit ' formula(fitObj)];
     
     fitCoeffs   = coeffvalues(fitObj);
     fitConfInts = confint(fitObj);
     fitCoeffsToStr=num2str(fitCoeffs', format);
-    fitConfIntsToStr=num2str(abs(fitConfInts(2,:)'-fitConfInts(1,:)')/2, formaterr);
+    fitConfIntsToStr=num2str(abs(fitConfInts(2,:)'-fitConfInts(1,:)')/2, format);
     units='';
     if(regexp(type(fitObj), 'poly\d+')==1)
         units=dc.colUnits{iyDatum}(iy);
